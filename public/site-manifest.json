@@ -1,7 +1,0 @@
-{
-  "schema_version": "1.0",
-  "site_name": "Easy Approval",
-  "site_url": "https://testing-aditya-mcp.vercel.app",
-  "auth_mode": "browser_proxy",
-  "capabilities": ["search", "navigation", "checkout"]
-}
