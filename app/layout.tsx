@@ -26,6 +26,40 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <Script id="accessme-navigation-bridge" strategy="beforeInteractive">
+          {`
+            (function () {
+              if (typeof window === 'undefined' || !window.fetch) return;
+
+              var nativeFetch = window.fetch.bind(window);
+
+              window.fetch = async function () {
+                var response = await nativeFetch.apply(window, arguments);
+
+                try {
+                  var input = arguments[0];
+                  var requestUrl = typeof input === 'string' ? input : (input && input.url) || '';
+
+                  if (requestUrl.indexOf('/api/agent/intent') !== -1) {
+                    var cloned = response.clone();
+                    var data = await cloned.json();
+                    var navigationUrl = data && (data.navigationUrl || (data.response && data.response.navigationUrl));
+
+                    if (navigationUrl && window.location.pathname !== navigationUrl) {
+                      setTimeout(function () {
+                        window.location.assign(navigationUrl);
+                      }, 250);
+                    }
+                  }
+                } catch (error) {
+                  // Keep the page working even if the bridge cannot parse the response.
+                }
+
+                return response;
+              };
+            })();
+          `}
+        </Script>
         <Script src="https://cdn.accessme.xyz/v1/agent.js" strategy="afterInteractive" />
       </body>
     </html>
