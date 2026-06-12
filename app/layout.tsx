@@ -43,7 +43,7 @@ export default function RootLayout({
                   if (requestUrl.indexOf('/api/agent/intent') !== -1) {
                     var cloned = response.clone();
                     var data = await cloned.json();
-                    var navigationUrl = data && (data.navigationUrl || (data.response && data.response.navigationUrl));
+                    var navigationUrl = data && (data.navigationUrl || (data.result && data.result.navigationUrl));
 
                     if (navigationUrl && window.location.pathname !== navigationUrl) {
                       setTimeout(function () {

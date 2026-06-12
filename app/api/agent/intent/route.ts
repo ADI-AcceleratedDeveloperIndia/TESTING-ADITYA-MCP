@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { searchServices } from "@/lib/services-data";
 
 type AgentIntentPayload = {
   intent?: string;
@@ -6,21 +7,72 @@ type AgentIntentPayload = {
   dryRun?: boolean;
 };
 
-const PRIVATE_LIMITED_SERVICE_URL = "/services/private-limited-company-registration";
+type AgentTraceStep = {
+  step_index: number;
+  action_id: string;
+  action_kind: string;
+  status: string;
+  message: string;
+};
 
-function resolveNavigationUrl(intent: string): string | null {
-  const normalized = intent.toLowerCase();
+function buildTrace(intent: string, navigationUrl: string | null): AgentTraceStep[] {
+  const steps: AgentTraceStep[] = [
+    {
+      step_index: 1,
+      action_id: "receive_intent",
+      action_kind: "input",
+      status: "done",
+      message: "Intent received by site backend.",
+    },
+    {
+      step_index: 2,
+      action_id: "match_site_content",
+      action_kind: "search",
+      status: "done",
+      message: "Matched the request against the Easy Approval service catalog.",
+    },
+  ];
 
-  if (
-    normalized.includes("private limited company") ||
-    normalized.includes("private limited") ||
-    normalized.includes("pvt ltd") ||
-    normalized.includes("private ltd")
-  ) {
-    return PRIVATE_LIMITED_SERVICE_URL;
+  if (navigationUrl) {
+    steps.push({
+      step_index: 3,
+      action_id: "navigate_to_service",
+      action_kind: "navigation",
+      status: "done",
+      message: `Open the service page for "${intent}".`,
+    });
+  } else {
+    steps.push({
+      step_index: 3,
+      action_id: "return_plan",
+      action_kind: "response",
+      status: "done",
+      message: "Return the matched result to the widget.",
+    });
   }
 
-  return null;
+  return steps;
+}
+
+function resolveNavigationUrl(intent: string): string | null {
+  const matches = searchServices(intent);
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const exactMatch = matches.find((service) => {
+    const value = intent.toLowerCase();
+    return (
+      service.name.toLowerCase() === value ||
+      service.slug.toLowerCase() === value ||
+      service.id.toLowerCase() === value
+    );
+  });
+
+  const service = exactMatch || matches[0];
+
+  return service ? `/services/${service.slug}` : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -51,6 +103,7 @@ export async function POST(request: NextRequest) {
   }
 
   const navigationUrl = resolveNavigationUrl(intent);
+  const trace = buildTrace(intent, navigationUrl);
 
   return NextResponse.json({
     success: true,
@@ -59,10 +112,14 @@ export async function POST(request: NextRequest) {
     intent,
     navigationUrl,
     response: {
-      type: navigationUrl ? "navigation" : "acknowledgement",
+      type: navigationUrl ? "navigation" : "execution_steps",
       message: navigationUrl
-        ? "Opening the Private Limited Company service page"
+        ? "Matched to a site service page"
         : "Intent received",
+      navigationUrl,
+    },
+    result: {
+      trace,
       navigationUrl,
     },
   });
