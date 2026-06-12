@@ -1,0 +1,5 @@
+{
+  "schema_version": "1.0",
+  "capabilities": ["mcp"],
+  "manifest_url": "/site-manifest.json"
+}

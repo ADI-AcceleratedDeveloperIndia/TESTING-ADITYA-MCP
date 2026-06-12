@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "site_id": "easy-approval",
+  "site_name": "Easy Approval",
+  "auth_mode": "api_key",
+  "capabilities": ["search", "navigation", "checkout"]
+}
